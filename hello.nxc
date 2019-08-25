@@ -1,0 +1,61 @@
+// compile: nbc hello.nxc -O=hello.rxe
+// then upload binary to nxt
+#define arrl 5
+#define wantdist 10
+#define US IN_3
+#define kp 4
+#define ki 3
+#define kd 2
+
+
+int arr[arrl] =  {0};
+int count = 0;
+
+// p,i,d parts
+int p(){
+  return arr[count] - wantdist;
+}
+int i(){
+  int i,s;
+  s = 0;
+  for(i=0; i< arrl; i++){
+    s += arr[i];
+  }
+  return s/arrl - wantdist;
+}
+int d(){
+  return arr[count] - arr[(count-1 + arrl )% arrl];
+}
+
+void updateArr(int d){
+  arr[count] = d;
+  count ++;
+  count %= arrl;
+}
+
+/* void read(){ */
+/*   int numread = 8; */
+/*   byte a[numread]; */
+/*   int* res; */
+/*   *res = 1; */
+/*   while(*res) //read until it was sucessful */
+/*     ReadSensorUSEx(US, a, res); */
+/*   int i,sum; */
+/*   sum = 0; */
+/*   for(i=0; i<numread; i++) //average */
+/*     sum += a[i]; */
+/*   sum /= numread; */
+/*   // write distance-value still needs to be converted to cm */
+/*   updateArr(sum); //this is wrong at the moment needs to be converted to cm */
+/* } */
+
+task main() {
+  SetSensorLowspeed(US);
+  while (true) {
+    int dist = SensorUS(US);
+    updateArr(dist);
+    int v = kp*p() + ki*i() + kd*d() - (kp*ki*kd)*wantdist; //do controlling with negative input
+    OnFwd(OUT_AC, v);
+    Wait(20);
+  }
+}
