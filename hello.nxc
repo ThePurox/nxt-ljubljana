@@ -13,7 +13,7 @@ int count = 0;
 
 // p,i,d parts
 int p(){
-  return arr[count] - wantdist;
+  return arr[count];
 }
 int i(){
   int i,s;
@@ -21,7 +21,7 @@ int i(){
   for(i=0; i< arrl; i++){
     s += arr[i];
   }
-  return s/arrl - wantdist;
+  return s/arrl;
 }
 int d(){
   return arr[count] - arr[(count-1 + arrl )% arrl];
