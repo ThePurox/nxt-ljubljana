@@ -27,6 +27,14 @@ int d(){
   return arr[count] - arr[(count-1 + arrl )% arrl];
 }
 
+int sensorAverage() {
+  int avg = 0;
+  for(int i = 0; i<5; i++) {
+    avg += SensorUS(US);
+  }
+  return avg/5;
+}
+
 void updateArr(int d){
   arr[count] = d;
   count ++;
@@ -52,7 +60,7 @@ void updateArr(int d){
 task main() {
   SetSensorLowspeed(US);
   while (true) {
-    int dist = SensorUS(US);
+    int dist = sensorAverage();
     updateArr(dist);
     int v = kp*p() + ki*i() + kd*d() - (kp*ki*kd)*wantdist; //do controlling with negative input
     OnFwd(OUT_AC, v);
