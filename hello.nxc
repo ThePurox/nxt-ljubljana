@@ -5,7 +5,7 @@
 #define US IN_3
 #define kp 4
 #define ki 3
-#define kd 2
+#define kd 4
 
 
 int arr[arrl] =  {0};
@@ -54,7 +54,7 @@ task main() {
   while (true) {
     int dist = SensorUS(US);
     updateArr(dist);
-    int v = kp*p() + ki*i() + kd*d() - (kp*ki*kd)*wantdist; //do controlling with negative input
+    int v = kp*p() + ki*i() + kd*d() - (kp+ki+kd)*wantdist; //do controlling with negative input
     OnFwd(OUT_AC, v);
     Wait(20);
   }
