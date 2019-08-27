@@ -3,9 +3,11 @@
 #define arrl 5
 #define wantdist 10
 #define US IN_3
-#define kp 4
-#define ki 3
+#define kp 3
+#define ki 4
 #define kd 4
+#define vmax 100
+#define distmax 30
 
 
 int arr[arrl] =  {0};
@@ -25,6 +27,15 @@ int i(){
 }
 int d(){
   return arr[count] - arr[(count-1 + arrl )% arrl];
+}
+
+int sensorAverage() {
+  int avg = 0;
+  int n = 3;
+  for(int i = 0; i<n; i++) {
+    avg += SensorUS(US);
+  }
+  return avg/n;
 }
 
 void updateArr(int d){
@@ -49,13 +60,28 @@ void updateArr(int d){
 /*   updateArr(sum); //this is wrong at the moment needs to be converted to cm */
 /* } */
 
+void init(){
+  int i;
+  for (i = 0; i< arrl; i++)
+    arr[i] = wantdist;
+}
+
 task main() {
+  init();
   SetSensorLowspeed(US);
   while (true) {
-    int dist = SensorUS(US);
+    int dist = sensorAverage();
+    int v;
     updateArr(dist);
-    int v = kp*p() + ki*i() + kd*d() - (kp+ki+kd)*wantdist; //do controlling with negative input
+    if ( dist < distmax ){
+      v = kp*p() + ki*i() + kd*d() - (kp+ki+kd)*wantdist; //do controlling with negative input
+    }else{
+      v = vmax;
+    }
+    if (v < - vmax){
+      v = vmax;
+    }
     OnFwd(OUT_AC, v);
-    Wait(20);
+    /* Wait(20); */
   }
 }
