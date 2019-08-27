@@ -1,0 +1,90 @@
+#define memsize 5
+#define calibVelocity 25
+#define calibDegree 120
+#define fwdVelocity 75
+#define kp 4
+#define ki 3
+#define kd 2
+
+int mem[memsize] =  {0};
+int count = 0;
+int range[2];
+
+// p,i,d parts
+int p(){
+        return mem[count];
+}
+
+int i() {
+        int i, s;
+        s = 0;
+        for(i=0; i< memsize; i++) {
+                s += mem[i];
+        }
+        return s/memsize;
+}
+
+int d() {
+        return mem[count] - mem[(count-1 + memsize )% memsize];
+}
+
+int lightAverage() {
+        int n = 3;
+        int avg = 0;
+        for (int i = 0; i<n; i++) {
+                avg += SENSOR_1;
+        }
+        return avg/n;
+}
+
+void lightCalibration() {
+        range[0] = 100;
+        range[1] = 0;
+        RotateMotor(OUT_A, calibVelocity, calibDegree);
+        RotateMotor(OUT_C, calibVelocity, -calibDegree);
+        while(GetOutput(OUT_A, RotationCountField) < calibDegree-5) {
+                int value = SENSOR_1;
+                if (value < range[0]) {
+                        range[0] = value;
+                }
+                if (value > range[1]) {
+                        range[1] = value;
+                }
+        }
+}
+
+task main() {
+        SetSensor(IN_1, SENSOR_LIGHT);
+        SetSensorType(IN_1,IN_TYPE_LIGHT_ACTIVE);
+        ResetSensor(IN_1);
+
+        int light = 0;
+
+        //get light values
+        lightCalibration();
+        int threshold = (range[0] + range[1])/ 2;
+
+        // reposition robot
+        OnRev(OUT_A, calibVelocity);
+        OnFwd(OUT_C, calibVelocity);
+        while( lightAverage() > threshold ) {}
+        Off(OUT_AC);
+
+        //move along line
+        OnFwd(OUT_AC, fwdVelocity);
+
+        while(true) {
+                // error < 0 -- steer right according to motor specification
+                mem[count] = lightAverage() - threshold;
+
+                // calculate pid
+                int steer = kp*p() + ki*i() + kd*d();
+
+                //steer
+                OnFwdSync(OUT_AC, fwdVelocity, steer);
+
+                count++;
+                count %= memsize;
+                Wait(100);
+        }
+}
