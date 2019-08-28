@@ -1,10 +1,10 @@
 #define memsize 5
 #define calibVelocity 25
 #define calibDegree 120
-#define fwdVelocity 75
-#define kp 4
-#define ki 3
-#define kd 2
+#define fwdVelocity 50
+#define kp 5
+#define ki 2
+#define kd 4
 
 int mem[memsize] =  {0};
 int count = 0;
@@ -53,9 +53,9 @@ void lightCalibration() {
     TextOut(0, LCD_LINE1, "white");
     Wait(50);
   }
-  range[0] = lightAverage(n);
+  range[1] = lightAverage(n);
   TextOut(0,LCD_LINE2, "white is set to:");
-  NumOut(0,0,range[0]);
+  NumOut(0,0,range[1]);
 
   Wait(1000);
   while(ButtonPressed(BTNCENTER,1) == 0){
@@ -70,9 +70,9 @@ void lightCalibration() {
     TextOut(0, LCD_LINE1, "black");
     Wait(10);
   }
-  range[1] = lightAverage(n);
+  range[0] = lightAverage(n);
   TextOut(0,LCD_LINE2, "black is set to:");
-  NumOut(0,0,range[1]);
+  NumOut(0,0,range[0]);
 
   Wait(1000);
   while(ButtonPressed(BTNCENTER,1) == 0){
@@ -120,6 +120,7 @@ task main() {
   //get light values
   lightCalibration();
   int threshold = (range[0] + range[1])/ 2;
+  int pidRange = kp* range[1] + ki*range[1] + kd*range[1];
 
   ClearScreen();
   NumOut(0,0,threshold);
@@ -140,20 +141,20 @@ task main() {
   /* Off(OUT_AC); */
 
   //move along line
-  OnFwd(OUT_AC, fwdVelocity);
+  //OnFwd(OUT_AC, fwdVelocity);
 
   while(true) {
     // error < 0 -- steer right according to motor specification
     mem[count] = lightAverage() - threshold;
 
     // calculate pid
-    int steer = kp*p() + ki*i() + kd*d() - (kp+ki+kd) * threshold;
-
+    int steer = kp*p() + ki*i() + kd*d();
+    NumOut(0, 0, steer);
     //steer
     OnFwdSync(OUT_AC, fwdVelocity, steer);
 
     count++;
     count %= memsize;
-    Wait(100);
+    Wait(10);
   }
 }
