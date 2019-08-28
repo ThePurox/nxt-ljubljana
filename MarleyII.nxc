@@ -34,6 +34,7 @@ int lightAverage(int n=3) {
     /* avg += SENSOR_1; */
     avg += ColorSensorRaw(IN_1,INPUT_BLANK);
   }
+  NumOut(0, 0, avg/n);
   return avg/n;
 }
 
@@ -129,6 +130,7 @@ task main() {
   }
   ClearScreen();
   TextOut(0, LCD_LINE1, "running");
+  NumOut(0, 0, threshold);
 
 
   /* // reposition robot */
