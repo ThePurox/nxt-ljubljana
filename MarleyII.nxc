@@ -12,79 +12,146 @@ int range[2];
 
 // p,i,d parts
 int p(){
-        return mem[count];
+  return mem[count];
 }
 
 int i() {
-        int i, s;
-        s = 0;
-        for(i=0; i< memsize; i++) {
-                s += mem[i];
-        }
-        return s/memsize;
+  int i, s;
+  s = 0;
+  for(i=0; i< memsize; i++) {
+    s += mem[i];
+  }
+  return s/memsize;
 }
 
 int d() {
-        return mem[count] - mem[(count-1 + memsize )% memsize];
+  return mem[count] - mem[(count-1 + memsize )% memsize];
 }
 
-int lightAverage() {
-        int n = 3;
-        int avg = 0;
-        for (int i = 0; i<n; i++) {
-                avg += SENSOR_1;
-        }
-        return avg/n;
+int lightAverage(int n=3) {
+  long avg = 0;
+  for (int i = 0; i<n; i++) {
+    /* avg += SENSOR_1; */
+    avg += ColorSensorRaw(IN_1,INPUT_BLANK);
+  }
+  return avg/n;
+}
+
+void printCurrentLight(){
+  ClearScreen();
+  NumOut(0,0,ColorSensorRaw(IN_1,INPUT_BLANK));
 }
 
 void lightCalibration() {
-        range[0] = 100;
-        range[1] = 0;
-        RotateMotor(OUT_A, calibVelocity, calibDegree);
-        RotateMotor(OUT_C, calibVelocity, -calibDegree);
-        while(GetOutput(OUT_A, RotationCountField) < calibDegree-5) {
-                int value = SENSOR_1;
-                if (value < range[0]) {
-                        range[0] = value;
-                }
-                if (value > range[1]) {
-                        range[1] = value;
-                }
-        }
+  int n=20;
+  ClearScreen();
+  // Set white
+  Wait(1000);
+  while(ButtonPressed(BTNCENTER,1) == 0){
+    printCurrentLight();
+    TextOut(0, LCD_LINE1, "white");
+    Wait(50);
+  }
+  range[0] = lightAverage(n);
+  TextOut(0,LCD_LINE2, "white is set to:");
+  NumOut(0,0,range[0]);
+
+  Wait(1000);
+  while(ButtonPressed(BTNCENTER,1) == 0){
+    Wait(10);
+  }
+  ClearScreen();
+
+  // Set black
+  Wait(1000);
+  while(ButtonPressed(BTNCENTER,1) == 0){
+    printCurrentLight();
+    TextOut(0, LCD_LINE1, "black");
+    Wait(10);
+  }
+  range[1] = lightAverage(n);
+  TextOut(0,LCD_LINE2, "black is set to:");
+  NumOut(0,0,range[1]);
+
+  Wait(1000);
+  while(ButtonPressed(BTNCENTER,1) == 0){
+    Wait(10);
+  }
+
+
+  /* RotateMotor(OUT_A, calibVelocity, calibDegree); */
+  /* RotateMotor(OUT_C, calibVelocity, -calibDegree); */
+  /* while(GetOutput(OUT_A, RotationCountField) < calibDegree-5) { */
+  /*   int value = Sensor(IN_1); */
+  /*         NumOut(0,0,range[0]); */
+  /*         if (value < range[0]) { */
+  /*                 range[0] = value; */
+  /*         } */
+  /*         if (value > range[1]) { */
+  /*                 range[1] = value; */
+  /*         } */
+  /*         ClearScreen(); */
+  /* } */
+  /* NumOut(0,0,range[0]); */
+  /* NumOut(30,30,range[1]); */
 }
 
 task main() {
-        SetSensor(IN_1, SENSOR_LIGHT);
-        SetSensorType(IN_1,IN_TYPE_LIGHT_ACTIVE);
-        ResetSensor(IN_1);
+  TextOut(0, LCD_LINE1, "hello");
+  /* SetSensorLowspeed(IN_1); */
+  SetSensorColorFull(IN_1);
+  /* SetSensor(IN_1, SENSOR_LIGHT); */
+  /* SetSensorType(IN_1,IN_TYPE_LIGHT_ACTIVE); */
+  /* SetSensorType(IN_1,IN_TYPE_REFLECTION); */
+  /* SetSensorLight(IN_1); */
+  /* ResetSensor(IN_1); */
+  /* SCOUT_LIGHT_ON; */
 
-        int light = 0;
+  while(ButtonPressed(BTNCENTER,1) == 0){
+    TextOut(0, LCD_LINE1, "acutal reading");
+    NumOut(0,0,ColorSensorRaw(IN_1,INPUT_BLANK));
+    Wait(100);
+    ClearScreen();
+  }
 
-        //get light values
-        lightCalibration();
-        int threshold = (range[0] + range[1])/ 2;
+  int light = 0;
 
-        // reposition robot
-        OnRev(OUT_A, calibVelocity);
-        OnFwd(OUT_C, calibVelocity);
-        while( lightAverage() > threshold ) {}
-        Off(OUT_AC);
+  //get light values
+  lightCalibration();
+  int threshold = (range[0] + range[1])/ 2;
 
-        //move along line
-        OnFwd(OUT_AC, fwdVelocity);
+  ClearScreen();
+  NumOut(0,0,threshold);
+  // wait for start
+  TextOut(0, LCD_LINE1, "press mid to start");
+  while(ButtonPressed(BTNCENTER,1) == 0){
+    Wait(10);
+  }
+  ClearScreen();
+  TextOut(0, LCD_LINE1, "running");
 
-        while(true) {
-                // error < 0 -- steer right according to motor specification
-                mem[count] = lightAverage() - threshold;
 
-                // calculate pid
-                int steer = kp*p() + ki*i() + kd*d();
+  /* // reposition robot */
+  /* OnRev(OUT_A, calibVelocity); */
+  /* OnFwd(OUT_C, calibVelocity); */
+  /* while( lightAverage() > threshold ) {} */
+  /* Off(OUT_AC); */
 
-                //steer
-                OnFwdSync(OUT_AC, fwdVelocity, steer);
+  //move along line
+  OnFwd(OUT_AC, fwdVelocity);
 
-                count++;
-                count %= memsize;
-                Wait(100);
-        }
+  while(true) {
+    // error < 0 -- steer right according to motor specification
+    mem[count] = lightAverage() - threshold;
+
+    // calculate pid
+    int steer = kp*p() + ki*i() + kd*d() - (kp+ki+kd) * threshold;
+
+    //steer
+    OnFwdSync(OUT_AC, fwdVelocity, steer);
+
+    count++;
+    count %= memsize;
+    Wait(100);
+  }
 }
